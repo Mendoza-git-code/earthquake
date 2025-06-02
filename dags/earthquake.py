@@ -7,7 +7,7 @@ from airflow import DAG
 from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
 from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator
-#from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+# from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.operators.python import PythonOperator
 
@@ -21,7 +21,7 @@ def http_extract_data(**kwargs):
     data_path = f"/tmp/earthquake_{start_date_nodash}.json"
 
     response = requests.get(url)
-    
+
     if response.status_code == 200:
         data = response.json()['features']
 
@@ -31,6 +31,7 @@ def http_extract_data(**kwargs):
                 file.write('\n')
     else:
         raise Exception(f"Failed to fetch data: {response.status_code}, {response.text}")
+
 
 # Define the DAG and default arguments
 default_args = {
@@ -60,33 +61,33 @@ with DAG(
     )
 
     load_file_to_gcs = LocalFilesystemToGCSOperator(
-        task_id = "load_file_to_gcs",
-        src = "/tmp/earthquake_{{ ds_nodash }}.json",
-        bucket = "starlingcontacts-data-dev",
-        dst = "earthquake/{{ ds_nodash }}.json",
+        task_id="load_file_to_gcs",
+        src="/tmp/earthquake_{{ ds_nodash }}.json",
+        bucket="starlingcontacts-data-dev",
+        dst="earthquake/{{ ds_nodash }}.json",
         gcp_conn_id="gcp-starlingcontacts-data-dev",
     )
 
-    #load_transformed_file_to_gcs = LocalFilesystemToGCSOperator(
-    #    task_id = "load_transformed_file_to_gcs",
-    #    src = "/tmp/earthquake_transformed{{ ds_nodash }}.json",
-    #    bucket = "starlingcontacts-data-dev",
-    #    dst = "earthquake_transformed/{{ ds_nodash }}.json",
-    #    gcp_conn_id="gcp-starlingcontacts-data-dev",
-    #)
+    # load_transformed_file_to_gcs = LocalFilesystemToGCSOperator(
+    #     task_id = "load_transformed_file_to_gcs",
+    #     src = "/tmp/earthquake_transformed{{ ds_nodash }}.json",
+    #     bucket = "starlingcontacts-data-dev",
+    #     dst = "earthquake_transformed/{{ ds_nodash }}.json",
+    #     gcp_conn_id="gcp-starlingcontacts-data-dev",
+    # )
 
     load_gcs_to_bq = GCSToBigQueryOperator(
-        task_id = "load_gcs_to_bq",
-        bucket = "starlingcontacts-data-dev",
+        task_id="load_gcs_to_bq",
+        bucket="starlingcontacts-data-dev",
         source_objects=['earthquake/{{ ds_nodash }}.json'],
-        destination_project_dataset_table = "staging_temp.earthquake_{{ ds_nodash }}",
-        write_disposition = "WRITE_TRUNCATE",
-        source_format = 'NEWLINE_DELIMITED_JSON',
+        destination_project_dataset_table="staging_temp.earthquake_{{ ds_nodash }}",
+        write_disposition="WRITE_TRUNCATE",
+        source_format='NEWLINE_DELIMITED_JSON',
         gcp_conn_id="gcp-starlingcontacts-data-dev",
     )
 
     bq_transform_event = BigQueryInsertJobOperator(
-        task_id = "bq_transform_event",
+        task_id="bq_transform_event",
         configuration={
             "query": {
                 "destinationTable": {
@@ -103,4 +104,4 @@ with DAG(
     )
 
     http_extract_data >> load_file_to_gcs >> load_gcs_to_bq >> bq_transform_event
-    http_extract_data >> transform_data_spark #>> load_transformed_file_to_gcs
+    http_extract_data >> transform_data_spark  # >> load_transformed_file_to_gcs
