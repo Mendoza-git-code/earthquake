@@ -91,9 +91,9 @@ with DAG(
         configuration={
             "query": {
                 "destinationTable": {
-                   "projectId": "starlingcontacts-data-dev",
-                   "datasetId": "earthquake_model",
-                   "tableId": "event_earthquake${{ ds_nodash }}"
+                    "projectId": "starlingcontacts-data-dev",
+                    "datasetId": "earthquake_model",
+                    "tableId": "event_earthquake${{ ds_nodash }}"
                 },
                 "query": "{% include './sql/event_earthquake.sql' %}",
                 "useLegacySql": False,
